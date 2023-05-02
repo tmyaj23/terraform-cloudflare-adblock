@@ -3,14 +3,15 @@
 name: Deploy and Bump
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - master
+#  push:
+#    branches:
+#      - master
+
 env:
   CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL}}
-  CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY}}
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID}}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN}}
+#  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID}}
+#  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
   tf_target_dir: example/examplea
   
 permissions: read-all
@@ -22,14 +23,12 @@ jobs:
       - uses: hashicorp/setup-terraform@v2.0.3
       - name: Checkout
         uses: actions/checkout@v3.5.2
-        with:
-          ref: master
-          token: ${{ github.token }}
-          fetch-depth: '0'
+
       - name: Config Terraform plugin cache
         run: |
           echo plugin_cache_dir="$HOME/.terraform.d/plugin-cache" >~/.terraformrc
           mkdir --parents ~/.terraform.d/plugin-cache
+
       - name: Cache Terraform
         uses: actions/cache@v3.3.1
         with:
@@ -38,26 +37,30 @@ jobs:
           key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
           restore-keys: |
             ${{ runner.os }}-terraform-
+
       - name: Terraform Init
-        id: init
+#        id: init
         run: terraform init
         working-directory: ${{ env.tf_target_dir }}
+
       - name: Terraform Apply
-        id: apply
+#        id: apply
+#        env:
+#          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: terraform apply --auto-approve
         working-directory: ${{ env.tf_target_dir }}
-  version:
-    permissions: write-all
-    name: versioning
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3.5.2
-        with:
-          fetch-depth: '0'
-      - name: Bump version and push tag
-        uses: anothrNick/github-tag-action@1.61.0
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          DEFAULT_BUMP: patch
-          WITH_V: "true"
-    needs: [terraform]
+#  version:
+#    permissions: write-all
+#    name: versioning
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v3.5.2
+#        with:
+#          fetch-depth: '0'
+#      - name: Bump version and push tag
+#        uses: anothrNick/github-tag-action@1.61.0
+#        env:
+#          GITHUB_TOKEN: ${{ github.token }}
+#          DEFAULT_BUMP: patch
+#          WITH_V: "true"
+#    needs: [terraform]
