@@ -1,66 +1,45 @@
----
-# yamllint disable rule:line-length
-name: Deploy and Bump
+name: 'Update Domain List'
+
 on:
   workflow_dispatch:
-#  push:
-#    branches:
-#      - master
+  schedule:
+    - cron: '0 10 15 * *' # At 10:00 on day-of-month 15
 
 env:
-  CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL}}
-  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN}}
-#  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID}}
-#  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
-  tf_target_dir: example/examplea
-  
+  FOLDER: '${{ github.workspace }}/cloudflare/lists'
+
 permissions: read-all
 
 jobs:
-  terraform:
+  auto-update:
     runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write    
+    
     steps:
-      - uses: hashicorp/setup-terraform@v2.0.3
-      - name: Checkout
+      - name: Checkout Branch
         uses: actions/checkout@v3.5.2
 
-      - name: Config Terraform plugin cache
+      #
+      # Fetch domain list
+      #
+      - name: Fetch Domain List
+        working-directory: ${{ env.FOLDER }}
         run: |
-          echo plugin_cache_dir="$HOME/.terraform.d/plugin-cache" >~/.terraformrc
-          mkdir --parents ~/.terraform.d/plugin-cache
+          LIST_FNAME="pihole_domain_list.txt"
+          curl -sSL https://raw.githubusercontent.com/bongochong/CombinedPrivacyBlockLists/master/NoFormatting/BlacklistedDomains.txt > ${LIST_FNAME}
 
-      - name: Cache Terraform
-        uses: actions/cache@v3.3.1
+      #
+      # Commit file
+      #
+      - name: ↗️ Create Pull Request
+        uses: peter-evans/create-pull-request@v5.0.0
         with:
-          path: |
-            ~/.terraform.d/plugin-cache
-          key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
-          restore-keys: |
-            ${{ runner.os }}-terraform-
-
-      - name: Terraform Init
-#        id: init
-        run: terraform init
-        working-directory: ${{ env.tf_target_dir }}
-
-      - name: Terraform Apply
-#        id: apply
-#        env:
-#          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: terraform apply --auto-approve
-        working-directory: ${{ env.tf_target_dir }}
-#  version:
-#    permissions: write-all
-#    name: versioning
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v3.5.2
-#        with:
-#          fetch-depth: '0'
-#      - name: Bump version and push tag
-#        uses: anothrNick/github-tag-action@1.61.0
-#        env:
-#          GITHUB_TOKEN: ${{ github.token }}
-#          DEFAULT_BUMP: patch
-#          WITH_V: "true"
-#    needs: [terraform]
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: 'Update Domain List'
+          branch-suffix: timestamp
+          commit-message: 'Update Domain List'
+          body: ''
