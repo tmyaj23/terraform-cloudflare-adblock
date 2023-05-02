@@ -3,11 +3,11 @@ output "team" {
 }
 
 output "account" {
-  value = data.cloudflare_accounts.woolfenden
+  value = data.cloudflare_accounts.tmyaj23
 }
 
 output "accounts" {
-  value = data.cloudflare_accounts.woolfenden.accounts[0].id
+  value = data.cloudflare_accounts.tmyaj23.accounts[0].id
 }
 
 output "malware_rule" {
